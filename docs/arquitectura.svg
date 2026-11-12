@@ -1,0 +1,147 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 700" width="1200" height="700" font-family="Helvetica, Arial, sans-serif">
+  <style>
+    .gh  { fill: #f6f8fa; stroke: #57606a; stroke-width: 1.5; }
+    .wf  { fill: #ffffff; stroke: #8250df; stroke-width: 1.3; }
+    .aws { fill: #fffaf3; stroke: #ea580c; stroke-width: 1.5; }
+    .svc { fill: #fff7ed; stroke: #ea580c; stroke-width: 1.4; }
+    .ec2 { fill: #eff6ff; stroke: #2563eb; stroke-width: 1.5; }
+    .db  { fill: #ecfdf5; stroke: #059669; stroke-width: 1.5; }
+    .cw  { fill: #fdf2f8; stroke: #db2777; stroke-width: 1.4; }
+    .t   { font-size: 15px; font-weight: 700; fill: #0f172a; }
+    .tw  { font-size: 13px; font-weight: 700; fill: #6e40c9; }
+    .s   { font-size: 12px; fill: #475569; }
+    .e   { font-size: 12px; fill: #1e293b; }
+    .g   { font-size: 14px; font-weight: 700; }
+    .l   { stroke: #334155; stroke-width: 1.6; fill: none; }
+    .ld  { stroke: #94a3b8; stroke-width: 1.4; fill: none; stroke-dasharray: 6 4; }
+  </style>
+
+  <rect width="1200" height="700" fill="#ffffff"/>
+
+  <!-- GitHub -->
+  <rect x="20" y="20" width="540" height="440" rx="14" class="gh"/>
+  <text x="38" y="46" class="g" fill="#24292f">GitHub</text>
+
+  <rect x="40" y="70" width="200" height="80" rx="10" fill="#fff" stroke="#57606a" stroke-width="1.3"/>
+  <text x="140" y="100" text-anchor="middle" class="t">Repositorio</text>
+  <text x="140" y="120" text-anchor="middle" class="s">main protegida:</text>
+  <text x="140" y="136" text-anchor="middle" class="s">merge solo si pasa CI</text>
+
+  <rect x="270" y="60" width="270" height="270" rx="10" fill="#fbf8ff" stroke="#8250df" stroke-width="1.3"/>
+  <text x="286" y="84" class="g" fill="#6e40c9">GitHub Actions</text>
+  <rect x="286" y="96" width="238" height="38" rx="8" class="wf"/>
+  <text x="298" y="114" class="tw">ci.yml</text>
+  <text x="298" y="128" class="s">PR a main: pytest</text>
+  <rect x="286" y="140" width="238" height="38" rx="8" class="wf"/>
+  <text x="298" y="158" class="tw">release.yml</text>
+  <text x="298" y="172" class="s">tag v#.#.#: release con zip</text>
+  <rect x="286" y="184" width="238" height="38" rx="8" class="wf"/>
+  <text x="298" y="202" class="tw">deploy.yml</text>
+  <text x="298" y="216" class="s">release nuevo: SSM a la EC2</text>
+  <rect x="286" y="228" width="238" height="38" rx="8" class="wf"/>
+  <text x="298" y="246" class="tw">provision.yml / destroy.yml</text>
+  <text x="298" y="260" class="s">manual: terraform apply / destroy</text>
+  <rect x="286" y="272" width="238" height="38" rx="8" class="wf"/>
+  <text x="298" y="290" class="tw">health-check.yml</text>
+  <text x="298" y="304" class="s">cada 5 min: GET /health</text>
+
+  <rect x="300" y="370" width="220" height="70" rx="10" fill="#fff" stroke="#57606a" stroke-width="1.3"/>
+  <text x="410" y="398" text-anchor="middle" class="t">Releases</text>
+  <text x="410" y="418" text-anchor="middle" class="s">to-do-list-api-v#.#.#.zip</text>
+
+  <rect x="40" y="370" width="200" height="70" rx="10" fill="#f1f5f9" stroke="#334155" stroke-width="1.3"/>
+  <text x="140" y="398" text-anchor="middle" class="t">Desarrollador</text>
+  <text x="140" y="418" text-anchor="middle" class="s">PR · merge · git tag</text>
+
+  <!-- AWS -->
+  <rect x="600" y="20" width="580" height="660" rx="14" class="aws"/>
+  <text x="618" y="46" class="g" fill="#ea580c">AWS (Learner Lab, us-east-1)</text>
+
+  <rect x="620" y="62" width="170" height="70" rx="10" class="svc"/>
+  <text x="705" y="90" text-anchor="middle" class="t">S3</text>
+  <text x="705" y="110" text-anchor="middle" class="s">tfstate (backend)</text>
+
+  <rect x="810" y="62" width="170" height="70" rx="10" class="svc"/>
+  <text x="895" y="90" text-anchor="middle" class="t">Secrets Manager</text>
+  <text x="895" y="110" text-anchor="middle" class="s">credenciales de RDS</text>
+
+  <rect x="1000" y="62" width="160" height="70" rx="10" class="svc"/>
+  <text x="1080" y="90" text-anchor="middle" class="t">SNS</text>
+  <text x="1080" y="110" text-anchor="middle" class="s">correo de alertas</text>
+
+  <rect x="620" y="170" width="360" height="380" rx="12" fill="#fafafa" stroke="#cbd5e1" stroke-width="1.3"/>
+  <text x="636" y="192" class="g" fill="#64748b">VPC default</text>
+
+  <rect x="650" y="210" width="300" height="120" rx="10" class="ec2"/>
+  <text x="800" y="238" text-anchor="middle" class="t">EC2 t3.micro</text>
+  <text x="800" y="258" text-anchor="middle" class="s">FastAPI :8000 (systemd)</text>
+  <text x="800" y="276" text-anchor="middle" class="s">user_data: clona, instala y arranca</text>
+  <text x="800" y="294" text-anchor="middle" class="s">Key Pair · SG 8000 · LabInstanceProfile</text>
+  <text x="800" y="312" text-anchor="middle" class="s">/tasks · /version · /health</text>
+
+  <rect x="650" y="430" width="220" height="90" rx="10" class="db"/>
+  <text x="760" y="460" text-anchor="middle" class="t">RDS PostgreSQL</text>
+  <text x="760" y="480" text-anchor="middle" class="s">db.t3.micro · tabla tasks</text>
+  <text x="760" y="498" text-anchor="middle" class="s">SG: 5432 solo desde la EC2</text>
+
+  <rect x="1000" y="170" width="160" height="380" rx="12" class="cw"/>
+  <text x="1080" y="196" text-anchor="middle" class="t">CloudWatch</text>
+  <text x="1016" y="226" class="e" font-weight="700">Metricas</text>
+  <text x="1016" y="244" class="s">CPUUtilization (nativa)</text>
+  <text x="1016" y="260" class="s">DbErrors (propia)</text>
+  <text x="1016" y="276" class="s">TasksCreated (propia)</text>
+  <text x="1016" y="312" class="e" font-weight="700">Alarmas (3)</text>
+  <text x="1016" y="330" class="s">CPU &gt; 80%</text>
+  <text x="1016" y="346" class="s">DbErrors &gt;= 1 / 5 min</text>
+  <text x="1016" y="362" class="s">TasksCreated &gt; 50 / 5 min</text>
+  <text x="1016" y="398" class="e" font-weight="700">Dashboard</text>
+  <text x="1016" y="416" class="s">las 3 metricas y</text>
+  <text x="1016" y="432" class="s">el estado de las alarmas</text>
+
+  <rect x="650" y="590" width="300" height="70" rx="10" fill="#f8fafc" stroke="#64748b" stroke-width="1.2" stroke-dasharray="5 4"/>
+  <text x="800" y="618" text-anchor="middle" class="t">SSM Run Command</text>
+  <text x="800" y="638" text-anchor="middle" class="s">deploy sin SSH ni scp</text>
+
+  <!-- flechas -->
+  <path d="M140 370 L140 154" class="l"/>
+  <path d="M240 110 L266 110" class="l"/>
+  <path d="M410 330 L410 366" class="l"/>
+  <text x="418" y="352" class="e">sube zip</text>
+
+  <path d="M524 247 L616 110" class="l"/>
+  <text x="548" y="96" class="e">terraform</text>
+
+  <path d="M524 203 L560 203 L560 625 L646 625" class="l"/>
+  <text x="566" y="560" class="e">send-command</text>
+
+  <path d="M920 590 L920 334" class="l"/>
+
+  <path d="M524 291 L646 291" class="l"/>
+  <text x="574" y="285" class="e">/health</text>
+
+  <path d="M650 300 L524 405" class="ld"/>
+  <text x="572" y="378" class="s">descarga zip</text>
+
+  <path d="M895 210 L895 136" class="l"/>
+  <text x="903" y="160" class="e">lee secreto</text>
+
+  <path d="M760 330 L760 426" class="l"/>
+  <text x="768" y="384" class="e">SQL</text>
+
+  <path d="M950 270 L996 270" class="l"/>
+  
+
+  <path d="M1080 170 L1080 136" class="l"/>
+  <path d="M140.0 154.0 L135.0 165.0 L145.0 165.0 z" fill="#334155"/>
+  <path d="M266.0 110.0 L255.0 105.0 L255.0 115.0 z" fill="#334155"/>
+  <path d="M410.0 366.0 L415.0 355.0 L405.0 355.0 z" fill="#334155"/>
+  <path d="M616.0 110.0 L605.7 116.3 L614.0 121.9 z" fill="#334155"/>
+  <path d="M646.0 625.0 L635.0 620.0 L635.0 630.0 z" fill="#334155"/>
+  <path d="M920.0 334.0 L915.0 345.0 L925.0 345.0 z" fill="#334155"/>
+  <path d="M646.0 291.0 L635.0 286.0 L635.0 296.0 z" fill="#334155"/>
+  <path d="M524.0 405.0 L535.7 401.8 L529.2 394.1 z" fill="#94a3b8"/>
+  <path d="M895.0 136.0 L890.0 147.0 L900.0 147.0 z" fill="#334155"/>
+  <path d="M760.0 426.0 L765.0 415.0 L755.0 415.0 z" fill="#334155"/>
+  <path d="M996.0 270.0 L985.0 265.0 L985.0 275.0 z" fill="#334155"/>
+  <path d="M1080.0 136.0 L1075.0 147.0 L1085.0 147.0 z" fill="#334155"/>
+</svg>
