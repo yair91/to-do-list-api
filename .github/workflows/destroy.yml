@@ -1,0 +1,55 @@
+name: Destroy
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirmacion:
+        description: 'Escribe "destruir" para borrar toda la infraestructura'
+        required: true
+
+concurrency: terraform
+
+env:
+  AWS_REGION: us-east-1
+  TF_IN_AUTOMATION: "true"
+  TF_VAR_repo_url: ${{ github.server_url }}/${{ github.repository }}.git
+  TF_VAR_alert_email: ${{ vars.ALERT_EMAIL }}
+
+jobs:
+  destroy:
+    if: inputs.confirmacion == 'destruir'
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: terraform
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: aws-actions/configure-aws-credentials@v6
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-session-token: ${{ secrets.AWS_SESSION_TOKEN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - uses: hashicorp/setup-terraform@v4
+        with:
+          terraform_version: 1.15.5
+          terraform_wrapper: false
+
+      - name: terraform init (tfstate en S3)
+        run: |
+          BUCKET="todo-tfstate-$(aws sts get-caller-identity --query Account --output text)"
+          terraform init -input=false -backend-config="bucket=${BUCKET}"
+
+      - name: terraform destroy
+        run: terraform destroy -auto-approve -input=false
+
+      - name: Confirmar que no queda nada
+        run: |
+          terraform state list | tee recursos.txt
+          if [ -s recursos.txt ]; then
+            echo "::error::quedaron recursos en el state"
+            exit 1
+          fi
+          echo "### Infraestructura destruida, el state esta vacio" >> "$GITHUB_STEP_SUMMARY"

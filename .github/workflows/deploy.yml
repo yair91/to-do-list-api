@@ -1,0 +1,112 @@
+name: Deploy
+
+# Un release creado con GITHUB_TOKEN no dispara el evento "release" en otros workflows,
+# por eso tambien se escucha cuando termina el workflow Release.
+on:
+  release:
+    types: [published]
+  workflow_run:
+    workflows: [Release]
+    types: [completed]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Version a desplegar (vacio = ultimo release)"
+        required: false
+
+concurrency: deploy
+
+env:
+  AWS_REGION: us-east-1
+  PROYECTO: todo-api
+
+jobs:
+  deploy:
+    if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Version a desplegar
+        id: version
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG_RELEASE: ${{ github.event.release.tag_name }}
+          TAG_RUN: ${{ github.event.workflow_run.head_branch }}
+          TAG_MANUAL: ${{ inputs.tag }}
+        run: |
+          TAG="${TAG_RELEASE:-${TAG_RUN:-$TAG_MANUAL}}"
+          if [ -z "$TAG" ]; then
+            TAG="$(gh release view --repo "$GITHUB_REPOSITORY" --json tagName -q .tagName)"
+          fi
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+          echo "zip=https://github.com/${GITHUB_REPOSITORY}/releases/download/${TAG}/to-do-list-api-${TAG}.zip" >> "$GITHUB_OUTPUT"
+          echo "desplegando $TAG"
+
+      - uses: aws-actions/configure-aws-credentials@v6
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-session-token: ${{ secrets.AWS_SESSION_TOKEN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Buscar la instancia
+        id: ec2
+        run: |
+          read -r ID IP < <(aws ec2 describe-instances \
+            --filters "Name=tag:Name,Values=${PROYECTO}" "Name=instance-state-name,Values=running" \
+            --query "Reservations[0].Instances[0].[InstanceId,PublicIpAddress]" --output text)
+          if [ -z "$ID" ] || [ "$ID" = "None" ]; then
+            echo "::error::no hay una instancia ${PROYECTO} corriendo, corre primero Provision"
+            exit 1
+          fi
+          echo "id=$ID" >> "$GITHUB_OUTPUT"
+          echo "url=http://$IP:8000" >> "$GITHUB_OUTPUT"
+
+      - name: Descargar el release en la EC2 y reiniciar (SSM)
+        env:
+          TAG: ${{ steps.version.outputs.tag }}
+          ZIP: ${{ steps.version.outputs.zip }}
+          INSTANCE: ${{ steps.ec2.outputs.id }}
+        run: |
+          SCRIPT=$(cat <<EOF
+          set -euxo pipefail
+          cd /opt/todo/releases
+          rm -rf "$TAG" "to-do-list-api-$TAG" /tmp/release.zip
+          curl -fsSL -o /tmp/release.zip "$ZIP"
+          unzip -q /tmp/release.zip -d /opt/todo/releases
+          mv "to-do-list-api-$TAG" "$TAG"
+          /opt/todo/venv/bin/pip install -q -r "/opt/todo/releases/$TAG/src/requirements.txt"
+          ln -sfn "/opt/todo/releases/$TAG" /opt/todo/current
+          sed -i "s/^APP_VERSION=.*/APP_VERSION=$TAG/" /etc/todo-api.env
+          chown -R todo:todo /opt/todo
+          systemctl restart todo-api
+          EOF
+          )
+          CMD_ID="$(aws ssm send-command \
+            --instance-ids "$INSTANCE" \
+            --document-name AWS-RunShellScript \
+            --comment "deploy $TAG" \
+            --parameters "$(jq -n --arg s "$SCRIPT" '{commands: ($s | split("\n"))}')" \
+            --query Command.CommandId --output text)"
+          echo "comando SSM: $CMD_ID"
+          aws ssm wait command-executed --command-id "$CMD_ID" --instance-id "$INSTANCE" || true
+          aws ssm get-command-invocation --command-id "$CMD_ID" --instance-id "$INSTANCE" \
+            --query "{estado: Status, salida: StandardOutputContent, error: StandardErrorContent}" --output json
+          ESTADO="$(aws ssm get-command-invocation --command-id "$CMD_ID" --instance-id "$INSTANCE" --query Status --output text)"
+          [ "$ESTADO" = "Success" ] || { echo "::error::el deploy en la EC2 termino con $ESTADO"; exit 1; }
+
+      - name: Confirmar version con GET /version
+        env:
+          TAG: ${{ steps.version.outputs.tag }}
+          API_URL: ${{ steps.ec2.outputs.url }}
+        run: |
+          for i in $(seq 1 20); do
+            ACTUAL="$(curl -fsS --max-time 5 "$API_URL/version" | jq -r .version || true)"
+            echo "version corriendo: ${ACTUAL:-sin respuesta}"
+            if [ "$ACTUAL" = "$TAG" ]; then
+              echo "### Desplegado $TAG en $API_URL" >> "$GITHUB_STEP_SUMMARY"
+              exit 0
+            fi
+            sleep 3
+          done
+          echo "::error::la API no reporta $TAG"
+          exit 1

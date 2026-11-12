@@ -1,0 +1,62 @@
+name: Health check
+
+on:
+  schedule:
+    - cron: "*/5 * * * *"
+  workflow_dispatch:
+
+env:
+  AWS_REGION: us-east-1
+  PROYECTO: todo-api
+
+jobs:
+  health:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: aws-actions/configure-aws-credentials@v6
+        id: aws
+        continue-on-error: true
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-session-token: ${{ secrets.AWS_SESSION_TOKEN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Buscar la instancia
+        id: ec2
+        run: |
+          IP=""
+          if [ "${{ steps.aws.outcome }}" = "success" ]; then
+            IP="$(aws ec2 describe-instances \
+              --filters "Name=tag:Name,Values=${PROYECTO}" "Name=instance-state-name,Values=running" \
+              --query "Reservations[0].Instances[0].PublicIpAddress" --output text 2>/dev/null || true)"
+          fi
+          if [ -z "$IP" ] || [ "$IP" = "None" ]; then
+            echo "::warning::no hay instancia corriendo o las credenciales del lab expiraron, no se revisa"
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "url=http://$IP:8000" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: GET /health
+        if: steps.ec2.outputs.skip != 'true'
+        env:
+          API_URL: ${{ steps.ec2.outputs.url }}
+        run: |
+          for i in 1 2 3; do
+            CODIGO="$(curl -sS --max-time 10 -o health.json -w '%{http_code}' "$API_URL/health" || echo 000)"
+            [ "$CODIGO" = "200" ] && break
+            sleep 10
+          done
+          cat health.json 2>/dev/null || true
+          echo
+          DB="$(jq -r .database health.json 2>/dev/null || echo "?")"
+          {
+            echo "### $API_URL/health"
+            echo
+            echo "HTTP $CODIGO · base de datos: $DB"
+          } >> "$GITHUB_STEP_SUMMARY"
+          if [ "$CODIGO" != "200" ] || [ "$DB" != "OK" ]; then
+            echo "::error::la API no esta sana (HTTP $CODIGO, base de datos $DB)"
+            exit 1
+          fi

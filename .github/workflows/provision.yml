@@ -1,0 +1,75 @@
+name: Provision
+
+on:
+  workflow_dispatch:
+
+concurrency: terraform
+
+env:
+  AWS_REGION: us-east-1
+  TF_IN_AUTOMATION: "true"
+  TF_VAR_repo_url: ${{ github.server_url }}/${{ github.repository }}.git
+  TF_VAR_alert_email: ${{ vars.ALERT_EMAIL }}
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: terraform
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: aws-actions/configure-aws-credentials@v6
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-session-token: ${{ secrets.AWS_SESSION_TOKEN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - uses: hashicorp/setup-terraform@v4
+        with:
+          terraform_version: 1.15.5
+          terraform_wrapper: false
+
+      - name: Revisar que exista el correo para las alarmas
+        run: |
+          if [ -z "$TF_VAR_alert_email" ]; then
+            echo "::error::falta la variable ALERT_EMAIL del repositorio (scripts/github-secrets.sh la configura)"
+            exit 1
+          fi
+
+      - name: terraform init (tfstate en S3)
+        run: |
+          BUCKET="todo-tfstate-$(aws sts get-caller-identity --query Account --output text)"
+          terraform init -input=false -backend-config="bucket=${BUCKET}"
+
+      - name: terraform apply
+        run: terraform apply -auto-approve -input=false
+
+      - name: Esperar a que la API responda
+        run: |
+          API_URL="$(terraform output -raw api_url)"
+          for i in $(seq 1 40); do
+            if BODY="$(curl -fsS --max-time 5 "$API_URL/health")"; then
+              echo "$BODY"
+              exit 0
+            fi
+            echo "esperando a user_data ($i/40)..."
+            sleep 15
+          done
+          echo "::error::la API no respondio en 10 minutos"
+          exit 1
+
+      - name: Resumen
+        if: always()
+        run: |
+          {
+            echo "### Infraestructura"
+            echo
+            echo "| Recurso | Valor |"
+            echo "|---|---|"
+            for o in api_url instance_id rds_endpoint secret_name sns_topic_arn dashboard_url; do
+              echo "| $o | $(terraform output -raw $o 2>/dev/null || echo '-') |"
+            done
+          } >> "$GITHUB_STEP_SUMMARY"
