@@ -1,0 +1,13 @@
+__pycache__/
+*.pyc
+.pytest_cache/
+.venv/
+
+# terraform: el state vive en S3, nunca en el repo
+.terraform/
+*.tfstate
+*.tfstate.*
+*.tfvars
+crash.log
+
+.DS_Store
