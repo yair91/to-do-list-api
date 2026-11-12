@@ -1,0 +1,50 @@
+#!/bin/bash
+# Arranque de la EC2: clona el repo, instala dependencias y levanta la API como servicio.
+set -euxo pipefail
+exec > >(tee /var/log/todo-user-data.log) 2>&1
+
+dnf install -y git python3.11 python3.11-pip unzip
+
+useradd --system --create-home --home-dir /opt/todo todo || true
+mkdir -p /opt/todo/releases
+
+git clone ${repo_url} /opt/todo/releases/main
+ln -sfn /opt/todo/releases/main /opt/todo/current
+
+python3.11 -m venv /opt/todo/venv
+/opt/todo/venv/bin/pip install --upgrade pip
+/opt/todo/venv/bin/pip install -r /opt/todo/current/src/requirements.txt
+
+VERSION="${app_version}"
+if [ -z "$VERSION" ]; then
+  VERSION="main-$(git -C /opt/todo/current rev-parse --short HEAD)"
+fi
+
+cat > /etc/todo-api.env <<EOF
+APP_VERSION=$VERSION
+DB_SECRET_ID=${secret_id}
+AWS_REGION=${region}
+METRICS_NAMESPACE=${namespace}
+EOF
+
+cat > /etc/systemd/system/todo-api.service <<'EOF'
+[Unit]
+Description=to-do-list-api
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+User=todo
+EnvironmentFile=/etc/todo-api.env
+WorkingDirectory=/opt/todo/current/src
+ExecStart=/opt/todo/venv/bin/uvicorn main:app --host 0.0.0.0 --port 8000
+Restart=always
+RestartSec=3
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
+chown -R todo:todo /opt/todo
+systemctl daemon-reload
+systemctl enable --now todo-api

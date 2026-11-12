@@ -1,0 +1,77 @@
+{
+  "widgets": [
+    {
+      "type": "text",
+      "x": 0, "y": 0, "width": 24, "height": 2,
+      "properties": {
+        "markdown": "# to-do-list-api\nCPU de la EC2 (nativa), errores de RDS y tareas creadas (propias, namespace `${namespace}`)"
+      }
+    },
+    {
+      "type": "metric",
+      "x": 0, "y": 2, "width": 8, "height": 7,
+      "properties": {
+        "title": "CPU de la EC2 (%)",
+        "region": "${region}",
+        "view": "timeSeries",
+        "stat": "Average",
+        "period": 300,
+        "metrics": [
+          [ "AWS/EC2", "CPUUtilization", "InstanceId", "${instance_id}" ]
+        ],
+        "yAxis": { "left": { "min": 0, "max": 100 } },
+        "annotations": {
+          "horizontal": [ { "label": "alarma", "value": 80, "color": "#d62728" } ]
+        }
+      }
+    },
+    {
+      "type": "metric",
+      "x": 8, "y": 2, "width": 8, "height": 7,
+      "properties": {
+        "title": "Errores de RDS (lectura/escritura)",
+        "region": "${region}",
+        "view": "timeSeries",
+        "stat": "Sum",
+        "period": 60,
+        "metrics": [
+          [ "${namespace}", "DbErrors", { "color": "#d62728" } ]
+        ],
+        "yAxis": { "left": { "min": 0 } },
+        "annotations": {
+          "horizontal": [ { "label": "alarma", "value": 1, "color": "#d62728" } ]
+        }
+      }
+    },
+    {
+      "type": "metric",
+      "x": 16, "y": 2, "width": 8, "height": 7,
+      "properties": {
+        "title": "Tareas creadas",
+        "region": "${region}",
+        "view": "timeSeries",
+        "stat": "Sum",
+        "period": 300,
+        "metrics": [
+          [ "${namespace}", "TasksCreated", { "color": "#2ca02c" } ]
+        ],
+        "yAxis": { "left": { "min": 0 } },
+        "annotations": {
+          "horizontal": [ { "label": "alarma", "value": 50, "color": "#d62728" } ]
+        }
+      }
+    },
+    {
+      "type": "alarm",
+      "x": 0, "y": 9, "width": 24, "height": 3,
+      "properties": {
+        "title": "Alarmas",
+        "alarms": [
+          "arn:aws:cloudwatch:${region}:${account_id}:alarm:todo-api-ec2-cpu-alta",
+          "arn:aws:cloudwatch:${region}:${account_id}:alarm:todo-api-errores-rds",
+          "arn:aws:cloudwatch:${region}:${account_id}:alarm:todo-api-pico-de-tareas"
+        ]
+      }
+    }
+  ]
+}

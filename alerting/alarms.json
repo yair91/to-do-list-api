@@ -1,0 +1,42 @@
+[
+  {
+    "name": "todo-api-ec2-cpu-alta",
+    "description": "Metrica nativa de AWS. CPU promedio de la EC2 arriba de 80% en 2 de 3 periodos de 5 minutos: la instancia no da abasto o hay un proceso atorado.",
+    "namespace": "AWS/EC2",
+    "metric_name": "CPUUtilization",
+    "dimensions": { "InstanceId": "${instance_id}" },
+    "statistic": "Average",
+    "period": 300,
+    "evaluation_periods": 3,
+    "datapoints_to_alarm": 2,
+    "threshold": 80,
+    "comparison_operator": "GreaterThanThreshold",
+    "treat_missing_data": "missing"
+  },
+  {
+    "name": "todo-api-errores-rds",
+    "description": "Metrica propia (put_metric_data). Al menos un error al leer o escribir en RDS en 5 minutos: algun usuario recibio 503.",
+    "namespace": "${namespace}",
+    "metric_name": "DbErrors",
+    "statistic": "Sum",
+    "period": 300,
+    "evaluation_periods": 1,
+    "datapoints_to_alarm": 1,
+    "threshold": 1,
+    "comparison_operator": "GreaterThanOrEqualToThreshold",
+    "treat_missing_data": "notBreaching"
+  },
+  {
+    "name": "todo-api-pico-de-tareas",
+    "description": "Metrica propia (put_metric_data). Mas de 50 tareas creadas en 5 minutos: posible abuso o un cliente en loop.",
+    "namespace": "${namespace}",
+    "metric_name": "TasksCreated",
+    "statistic": "Sum",
+    "period": 300,
+    "evaluation_periods": 1,
+    "datapoints_to_alarm": 1,
+    "threshold": 50,
+    "comparison_operator": "GreaterThanThreshold",
+    "treat_missing_data": "notBreaching"
+  }
+]
