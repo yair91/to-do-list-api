@@ -29,18 +29,20 @@ fi
 
 REPO="$(gh repo view --json nameWithOwner -q .nameWithOwner)"
 
-# 1) credenciales pegadas en ~/.aws/credentials (las de "AWS Details" del lab)
-# 2) si no hay, las de la sesion de CloudShell
+# Las credenciales de CloudShell caducan a los pocos minutos y tiran el terraform apply
+# a la mitad, por eso solo se aceptan las de "AWS Details" del lab (duran toda la sesion).
 AK="$(aws configure get aws_access_key_id 2>/dev/null || true)"
 SK="$(aws configure get aws_secret_access_key 2>/dev/null || true)"
 ST="$(aws configure get aws_session_token 2>/dev/null || true)"
 if [ -z "$AK" ] || [ -z "$SK" ] || [ -z "$ST" ]; then
-  eval "$(aws configure export-credentials --format env)"
-  AK="$AWS_ACCESS_KEY_ID"
-  SK="$AWS_SECRET_ACCESS_KEY"
-  ST="$AWS_SESSION_TOKEN"
-  echo "aviso: se usaron las credenciales de CloudShell, pueden durar menos que la sesion del lab."
-  echo "       si los workflows fallan por credenciales, pega el bloque de AWS Details en ~/.aws/credentials"
+  cat <<'MSG'
+faltan las credenciales del lab en ~/.aws/credentials:
+  1. en la pagina del Learner Lab: AWS Details > AWS CLI > Show
+  2. copia el bloque completo ([default], aws_access_key_id, aws_secret_access_key, aws_session_token)
+  3. en CloudShell: nano ~/.aws/credentials, pega, guarda (Ctrl+O, Enter, Ctrl+X)
+  4. vuelve a correr este script
+MSG
+  exit 1
 fi
 
 ACCOUNT_ID="$(AWS_ACCESS_KEY_ID="$AK" AWS_SECRET_ACCESS_KEY="$SK" AWS_SESSION_TOKEN="$ST" \

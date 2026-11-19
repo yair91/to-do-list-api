@@ -86,13 +86,17 @@ Todo se corre desde la consola de AWS Academy (CloudShell) y desde GitHub Action
    bash scripts/crear-backend.sh
    ```
 
-4. Copiar las credenciales del lab a GitHub. Las del lab caducan, hay que repetirlo en cada sesion. El correo para las alarmas solo hace falta la primera vez:
+4. Pegar las credenciales del lab en CloudShell. Las de CloudShell caducan a los pocos minutos y cortan el `terraform apply` a la mitad, por eso se usan las de **AWS Details**, que duran toda la sesion:
+   - En la pagina del Learner Lab: **AWS Details > AWS CLI > Show** y copiar el bloque completo.
+   - En CloudShell: `nano ~/.aws/credentials`, pegar y guardar.
+
+5. Copiar esas credenciales a los secrets de GitHub (repetir en cada sesion del lab). El correo para las alarmas solo hace falta la primera vez:
 
    ```bash
    bash scripts/github-secrets.sh tu@correo.com
    ```
 
-   La primera vez instala `gh` en `~/bin` y pide iniciar sesion en GitHub con un codigo. Usa las credenciales de `~/.aws/credentials` si existen (el bloque de AWS Details del lab) y si no, las de CloudShell.
+   La primera vez instala `gh` en `~/bin` y pide iniciar sesion en GitHub con un codigo.
 
 ### 2. Crear la infraestructura
 
@@ -125,6 +129,14 @@ git push origin v1.0.0
 ```
 
 El bucket del tfstate no se borra, para no perder el state entre sesiones del lab.
+
+### Si se pierde el state
+
+Si un `apply` se corta (por ejemplo porque caducaron las credenciales) pueden quedar recursos fuera del state y el candado puesto. `scripts/limpiar.sh` borra por nombre todo lo de `todo-api` y quita el candado; despues se puede correr Provision otra vez:
+
+```bash
+bash scripts/limpiar.sh
+```
 
 ## CI
 
