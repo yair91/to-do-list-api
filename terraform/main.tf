@@ -235,20 +235,27 @@ resource "aws_sns_topic_subscription" "correo" {
 }
 
 locals {
-  alarmas = jsondecode(templatefile("${path.module}/../alerting/alarms.json", {
-    instance_id = aws_instance.app.id
-    namespace   = local.namespace
-  }))
+  # el ID de la EC2 no se conoce hasta el apply y for_each necesita llaves fijas,
+  # asi que la plantilla se arma con un marcador y el ID se pone en las dimensiones
+  marcador_instancia = "__INSTANCE_ID__"
+  alarmas = {
+    for a in jsondecode(templatefile("${path.module}/../alerting/alarms.json", {
+      instance_id = local.marcador_instancia
+      namespace   = local.namespace
+    })) : a.name => a
+  }
 }
 
 resource "aws_cloudwatch_metric_alarm" "alarmas" {
-  for_each = { for a in local.alarmas : a.name => a }
+  for_each = local.alarmas
 
-  alarm_name          = each.value.name
-  alarm_description   = each.value.description
-  namespace           = each.value.namespace
-  metric_name         = each.value.metric_name
-  dimensions          = lookup(each.value, "dimensions", null)
+  alarm_name        = each.value.name
+  alarm_description = each.value.description
+  namespace         = each.value.namespace
+  metric_name       = each.value.metric_name
+  dimensions = can(each.value.dimensions) ? {
+    for k, v in each.value.dimensions : k => replace(v, local.marcador_instancia, aws_instance.app.id)
+  } : null
   statistic           = each.value.statistic
   period              = each.value.period
   evaluation_periods  = each.value.evaluation_periods
