@@ -78,7 +78,7 @@ def test_crear_tarea_sin_titulo_es_invalido(ctx):
 
 def test_version_viene_de_variable_de_ambiente(ctx):
     client, _, _ = ctx
-    assert client.get("/version").json() == {"version": "v1.2.3"}
+    assert client.get("/version").json() == {"version": "v9.9.9"}
 
 
 def test_health_ok(ctx):
