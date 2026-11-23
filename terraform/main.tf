@@ -219,6 +219,11 @@ resource "aws_instance" "app" {
     Name = var.proyecto
   }
 
+  # cuando sale una AMI nueva no se recrea la instancia (se perderia la version desplegada)
+  lifecycle {
+    ignore_changes = [ami]
+  }
+
   depends_on = [aws_secretsmanager_secret_version.db]
 }
 
